@@ -40,9 +40,9 @@ public class TodoService {
 	}
 
 	public Todo findById(int id, String username) {
-		List<Todo> listOftodos = findByUsername(username);
+		List<Todo> listOfTodos = findByUsername(username);
 		Predicate<? super Todo> predicate = todo -> todo.getId() == id;
-		Todo todo = listOftodos.stream().filter(predicate).findFirst().get();
+		Todo todo = listOfTodos.stream().filter(predicate).findFirst().get();
 		return todo;
 	}
 

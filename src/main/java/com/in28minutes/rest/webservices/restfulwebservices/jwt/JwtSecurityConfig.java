@@ -1,4 +1,3 @@
-
 package com.in28minutes.rest.webservices.restfulwebservices.jwt;
 
 import java.security.KeyPair;
@@ -30,9 +29,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.util.matcher.AndRequestMatcher;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.servlet.handler.HandlerMappingIntrospector;
 
@@ -42,39 +38,34 @@ import com.nimbusds.jose.jwk.RSAKey;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
 
-import static org.springframework.security.config.Customizer.withDefaults;
-
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class JwtSecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        RequestMatcher notH2Console = new NegatedRequestMatcher(new AntPathRequestMatcher("/h2-console/**"));
-        RequestMatcher optionsMatcher = new AntPathRequestMatcher("/**", "OPTIONS");
+    public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity, HandlerMappingIntrospector introspector) throws Exception {
 
-        RequestMatcher publicMatchers = new AndRequestMatcher(
-                PathRequest.toStaticResources().atCommonLocations(),
-                new AntPathRequestMatcher("/authenticate")
-        );
-
-        http
-                .authorizeRequests(authorizeRequests ->
-                        authorizeRequests
-                                .requestMatchers(notH2Console, optionsMatcher).permitAll()
-                                .requestMatchers(publicMatchers).permitAll()
-                                .anyRequest().authenticated()
-                )
-                .csrf().disable()
-                .sessionManagement(sessionManagement ->
-                        sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .oauth2ResourceServer(OAuth2ResourceServerConfigurer::jwt)
-                .httpBasic(Customizer.withDefaults())
-                .headers(headers -> headers.frameOptions().sameOrigin());
-
-        return http.build();
+        // h2-console is a servlet
+        // https://github.com/spring-projects/spring-security/issues/12310
+        return httpSecurity
+                .authorizeHttpRequests(auth -> auth
+                    .antMatchers("/authenticate*").permitAll()
+                    .requestMatchers(PathRequest.toH2Console()).permitAll() // h2-console is a servlet and NOT recommended for a production
+                    .antMatchers(HttpMethod.OPTIONS,"/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.
+                    sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .oauth2ResourceServer(
+                        OAuth2ResourceServerConfigurer::jwt)
+                .httpBasic(
+                        Customizer.withDefaults())
+                .headers(header -> {header.
+                    frameOptions().sameOrigin();})
+                .build();
     }
 
     @Bean
@@ -88,10 +79,10 @@ public class JwtSecurityConfig {
     @Bean
     public UserDetailsService userDetailsService() {
         UserDetails user = User.withUsername("in28minutes")
-                .password("{noop}dummy")
-                .authorities("read")
-                .roles("USER")
-                .build();
+                                .password("{noop}dummy")
+                                .authorities("read")
+                                .roles("USER")
+                                .build();
 
         return new InMemoryUserDetailsManager(user);
     }
@@ -99,8 +90,8 @@ public class JwtSecurityConfig {
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
         JWKSet jwkSet = new JWKSet(rsaKey());
-        return (((jwkSelector, securityContext)
-                -> jwkSelector.select(jwkSet)));
+        return (((jwkSelector, securityContext) 
+                        -> jwkSelector.select(jwkSet)));
     }
 
     @Bean
@@ -114,12 +105,12 @@ public class JwtSecurityConfig {
                 .withPublicKey(rsaKey().toRSAPublicKey())
                 .build();
     }
-
+    
     @Bean
     public RSAKey rsaKey() {
-
+        
         KeyPair keyPair = keyPair();
-
+        
         return new RSAKey
                 .Builder((RSAPublicKey) keyPair.getPublic())
                 .privateKey((RSAPrivateKey) keyPair.getPrivate())
@@ -138,5 +129,6 @@ public class JwtSecurityConfig {
                     "Unable to generate an RSA Key Pair", e);
         }
     }
-
+    
 }
+

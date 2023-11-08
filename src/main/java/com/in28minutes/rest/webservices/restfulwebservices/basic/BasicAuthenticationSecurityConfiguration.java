@@ -1,8 +1,6 @@
 package com.in28minutes.rest.webservices.restfulwebservices.basic;
 
-import jakarta.websocket.Session;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,7 +14,7 @@ public class BasicAuthenticationSecurityConfiguration {
     //by default spring security authenticates all requests
     //basic authentication for all the request
     //disabling csrf
-    //stateless rest api
+    //stateless r•••••est api
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
